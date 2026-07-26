@@ -7,27 +7,25 @@
 
 int main() {
   int sfd; // socket file descriptor
-  struct addrinfo hints, *res;
+  struct addrinfo hints;
   struct addrinfo *servinfo;
 
   memset(&hints, 0, sizeof(hints)); // empty struct
   hints.ai_family = AF_UNSPEC;      // ipv4 or ipv6, dont care
   hints.ai_socktype = SOCK_STREAM;  // tcp
-  hints.ai_flags = AI_PASSIVE;
 
   if ((sfd = getaddrinfo(NULL, "3490", &hints, &servinfo)) != 0) {
     fprintf(stderr, "gai error: %s\n", gai_strerror(sfd));
     exit(1);
   }
 
-  sfd = getaddrinfo("INPUT HOST HERE", "PORT", &hints, &servinfo);
+  sfd =
+      socket(servinfo->ai_family, servinfo->ai_socktype, servinfo->ai_protocol);
 
-  sfd = socket(res->ai_family, res->ai_socktype, res->ai_protocol);
-
-  int c = connect(sfd, res->ai_addr, res->ai_addrlen);
+  int c = connect(sfd, servinfo->ai_addr, servinfo->ai_addrlen);
 
   if (c == -1) {
-    fprintf(stderr, "Connection Refused");
+    fprintf(stderr, "Connection Errored");
   } else {
     // here i implement sequential checking of ports
   }
