@@ -1,3 +1,4 @@
+#include <errno.h>
 #include <netdb.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -5,16 +6,17 @@
 #include <sys/socket.h>
 #include <sys/types.h>
 
-int main() {
+int main(void) {
   int sfd; // socket file descriptor
+  const char *localhost = "127.0.0.1";
   struct addrinfo hints;
   struct addrinfo *servinfo;
 
   memset(&hints, 0, sizeof(hints)); // empty struct
-  hints.ai_family = AF_UNSPEC;      // ipv4 or ipv6, dont care
+  hints.ai_family = AF_INET;        // ipv4 or ipv6, dont care
   hints.ai_socktype = SOCK_STREAM;  // tcp
 
-  if ((sfd = getaddrinfo(NULL, "3490", &hints, &servinfo)) != 0) {
+  if ((sfd = getaddrinfo(localhost, "7000", &hints, &servinfo)) != 0) {
     fprintf(stderr, "gai error: %s\n", gai_strerror(sfd));
     exit(1);
   }
@@ -25,8 +27,10 @@ int main() {
   int c = connect(sfd, servinfo->ai_addr, servinfo->ai_addrlen);
 
   if (c == -1) {
-    fprintf(stderr, "Connection Errored");
+    fprintf(stderr, "Connection Errored\n");
+    printf("%s\n", strerror(errno));
   } else {
+    printf("Okay nice you connected\n");
     // here i implement sequential checking of ports
   }
 
