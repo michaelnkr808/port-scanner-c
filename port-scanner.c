@@ -1,5 +1,6 @@
 #include <errno.h>
 #include <netdb.h>
+#include <netinet/in.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -9,8 +10,8 @@
 
 int main(void) {
   int sfd; // socket file descriptor
-  const char *localhost = "scanme.nmap.org";
-  char str[6];
+  int rv;
+  const char *target = "scanme.nmap.org";
   struct addrinfo hints;
   struct addrinfo *servinfo;
 
@@ -18,16 +19,28 @@ int main(void) {
   hints.ai_family = AF_INET;        // ipv4 or ipv6, dont care
   hints.ai_socktype = SOCK_STREAM;  // tcp
 
-  for (int i = 8080; i < 8081; i++) {
-    snprintf(str, sizeof(str), "%d", i);
-    if ((sfd = getaddrinfo(localhost, str, &hints, &servinfo)) != 0) {
-      fprintf(stderr, "Port Number: %d gai error: %s\n", i, gai_strerror(sfd));
-      exit(1);
-    }
+  // resolve once, NULL service->the result carries port 0, then we fill it in
+  rv = getaddrinfo(target, NULL, &hints, &servinfo);
+  if (rv != 0) {
+    fprintf(stderr, "gai error %s\n", gai_strerror(rv));
+    exit(1);
+  }
+
+  // our own copy of the address bytes to mutate
+  struct sockaddr_in addr;
+  memcpy(&addr, servinfo->ai_addr, servinfo->ai_addrlen);
+
+  for (int i = 20; i < 25; i++) {
+    addr.sin_port = htons(i);
+
     sfd = socket(servinfo->ai_family, servinfo->ai_socktype,
                  servinfo->ai_protocol);
+    if (sfd == -1) {
+      perror("socket");
+      continue;
+    }
 
-    int c = connect(sfd, servinfo->ai_addr, servinfo->ai_addrlen);
+    int c = connect(sfd, (struct sockaddr *)&addr, sizeof addr);
 
     if (c == -1) {
       if (errno == ECONNREFUSED) {
@@ -46,6 +59,7 @@ int main(void) {
     }
 
     close(sfd);
-    freeaddrinfo(servinfo);
   }
+
+  freeaddrinfo(servinfo);
 }
